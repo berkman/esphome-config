@@ -1,0 +1,61 @@
+esphome:
+  name: office_blinds
+  platform: ESP8266
+  board: huzzah
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  power_save_mode: light
+
+  manual_ip:
+    static_ip: !secret office_blinds_ip
+    gateway: !secret wifi_gateway
+    subnet: !secret wifi_subnet
+
+# Enable logging
+logger:
+
+ota:
+
+stepper:
+  - platform: uln2003
+    id: my_stepper
+    pin_a: 14
+    pin_b: 12
+    pin_c: 13
+    pin_d: 15
+    max_speed: 250 steps/s
+
+    # Optional:
+    acceleration: inf
+    deceleration: inf
+    
+mqtt:
+  broker: !secret mqtt_broker
+  port: !secret mqtt_port
+  username: !secret mqtt_office_blinds_username
+  password: !secret mqtt_office_blinds_password
+  topic_prefix: home/office/blinds
+  on_message:
+    - topic: home/office/blinds/set
+      payload: "OPEN"
+      then:
+        - mqtt.publish:
+            topic: home/office/blinds
+            payload: "OPEN"
+        - stepper.set_target:
+            id: my_stepper
+            target: 2038
+        - logger.log: "GOT OPEN MESSAGE"
+    - topic: home/office/blinds/set
+      payload: "CLOSE"
+      then:
+        - mqtt.publish:
+            topic: home/office/blinds
+            payload: "CLOSE"
+        - stepper.set_target:
+            id: my_stepper
+            target: 0
+        - logger.log: "GOT CLOSED MESSAGE"
